@@ -19,6 +19,7 @@ struct ClipboardPanelView: View {
     @State private var isSearching    = false
     @State private var showClearAlert = false
     @State private var selectedItemId: UUID? = nil
+    @State private var panelState     = PanelState.shared
     @FocusState private var searchFocused: Bool
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
@@ -63,10 +64,15 @@ struct ClipboardPanelView: View {
     private var topToolbar: some View {
         HStack(spacing: 2) {
             toolbarBtn("clock.arrow.circlepath") {}
-            toolbarBtn("gearshape") {}
+            toolbarBtn("gearshape") {
+                NotificationCenter.default.post(name: .showSettingsNotification, object: nil)
+            }
             toolbarBtn("keyboard") {}
             toolbarBtn("trash") { showClearAlert = true }
             toolbarBtn("doc.on.clipboard.fill", accent: true) {}
+
+            // Pin panel button
+            pinPanelButton
 
             Spacer()
 
@@ -82,6 +88,22 @@ struct ClipboardPanelView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(Color(hex: "#1A1A1A"))
+    }
+
+    private var pinPanelButton: some View {
+        Button {
+            panelState.isPinned.toggle()
+            NotificationCenter.default.post(name: .togglePinPanelNotification, object: nil)
+        } label: {
+            Image(systemName: panelState.isPinned ? "pin.fill" : "pin")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(panelState.isPinned ? Color(hex: "#30D158") : .white.opacity(0.6))
+                .frame(width: 30, height: 26)
+                .background(panelState.isPinned ? Color(hex: "#30D158").opacity(0.15) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .help(panelState.isPinned ? "Unpin panel" : "Pin panel — keep it open")
     }
 
     @ViewBuilder

@@ -9,9 +9,9 @@ final class ClipboardManager {
     var activeContentFilter: ClipboardContentType? = nil
     var selectedAppFilter: String? = nil
 
-    private let db      = DatabaseManager()
-    private let monitor = ClipboardMonitor()
-    private let maxNonPinned = 200
+    private let db       = DatabaseManager()
+    private let monitor  = ClipboardMonitor()
+    private let settings = AppSettings.shared
 
     // MARK: - Filtered views
 
@@ -100,14 +100,15 @@ final class ClipboardManager {
     }
 
     private func trimIfNeeded() {
+        let limit     = settings.maxItems
         let nonPinned = items.filter { !$0.isPinned }
-        guard nonPinned.count > maxNonPinned else { return }
+        guard nonPinned.count > limit else { return }
 
-        let toRemove = nonPinned.suffix(nonPinned.count - maxNonPinned)
+        let toRemove = nonPinned.suffix(nonPinned.count - limit)
         for old in toRemove {
             items.removeAll { $0.id == old.id }
         }
-        db.trimOldest(keeping: maxNonPinned)
+        db.trimOldest(keeping: limit)
     }
 
     private func applyFilters(to source: [ClipboardItem]) -> [ClipboardItem] {

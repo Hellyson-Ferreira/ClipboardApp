@@ -2,7 +2,18 @@ import SwiftUI
 import AppKit
 
 extension Notification.Name {
-    static let closePanelNotification = Notification.Name("ClipboardApp.closePanel")
+    static let closePanelNotification    = Notification.Name("ClipboardApp.closePanel")
+    static let showSettingsNotification  = Notification.Name("ClipboardApp.showSettings")
+    static let togglePinPanelNotification = Notification.Name("ClipboardApp.togglePinPanel")
+}
+
+// MARK: - Shared panel state (observed by SwiftUI views and AppDelegate)
+
+@Observable
+final class PanelState {
+    static let shared = PanelState()
+    var isPinned = false
+    private init() {}
 }
 
 extension Color {
