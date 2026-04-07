@@ -5,6 +5,7 @@ struct ClipboardItemCard: View {
     let item: ClipboardItem
     let isFirst: Bool
     let onPin: () -> Void
+    let onDelete: () -> Void
     let onCopy: () -> Void
 
     @State private var isHovered = false
@@ -27,7 +28,7 @@ struct ClipboardItemCard: View {
             )
 
             if isHovered {
-                pinButton.padding(5)
+                hoverActions.padding(5)
             }
         }
         .scaleEffect(isHovered ? 1.02 : 1.0)
@@ -141,13 +142,29 @@ struct ClipboardItemCard: View {
         .background(Color(hex: "#181818"))
     }
 
-    // MARK: - Pin Overlay
+    // MARK: - Hover Actions (pin + delete)
 
-    private var pinButton: some View {
-        Button(action: onPin) {
-            Image(systemName: item.isPinned ? "pin.slash.fill" : "pin.fill")
+    private var hoverActions: some View {
+        HStack(spacing: 4) {
+            overlayBtn(
+                icon: "trash",
+                color: Color(hex: "#FF453A"),
+                action: onDelete
+            )
+            overlayBtn(
+                icon: item.isPinned ? "pin.slash.fill" : "pin.fill",
+                color: item.isPinned ? Color(hex: "#30D158") : .white.opacity(0.75),
+                action: onPin
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func overlayBtn(icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundColor(item.isPinned ? Color(hex: "#30D158") : .white.opacity(0.75))
+                .foregroundColor(color)
                 .padding(5)
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 5))

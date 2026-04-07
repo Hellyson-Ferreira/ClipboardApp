@@ -14,9 +14,10 @@ enum PanelTab: String, CaseIterable {
 }
 
 struct ClipboardPanelView: View {
-    @State private var manager    = ClipboardManager()
-    @State private var activeTab  = PanelTab.recentes
-    @State private var isSearching = false
+    @State private var manager        = ClipboardManager()
+    @State private var activeTab      = PanelTab.recentes
+    @State private var isSearching    = false
+    @State private var showClearAlert = false
     @FocusState private var searchFocused: Bool
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
@@ -39,6 +40,12 @@ struct ClipboardPanelView: View {
         .frame(width: 480, height: 560)
         .background(Color(hex: "#111111"))
         .preferredColorScheme(.dark)
+        .alert("Limpar histórico", isPresented: $showClearAlert) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Limpar", role: .destructive) { manager.clearAll() }
+        } message: {
+            Text("Todos os clips não fixados serão removidos. Os itens fixados serão mantidos.")
+        }
     }
 
     // MARK: - Top Toolbar
@@ -48,7 +55,7 @@ struct ClipboardPanelView: View {
             toolbarBtn("clock.arrow.circlepath") {}
             toolbarBtn("gearshape") {}
             toolbarBtn("keyboard") {}
-            toolbarBtn("trash") { manager.clearAll() }
+            toolbarBtn("trash") { showClearAlert = true }
             toolbarBtn("doc.on.clipboard.fill", accent: true) {}
 
             Spacer()
@@ -159,8 +166,9 @@ struct ClipboardPanelView: View {
                         ClipboardItemCard(
                             item: item,
                             isFirst: index == 0 && activeTab == .recentes && manager.searchText.isEmpty,
-                            onPin: { manager.togglePin(item) },
-                            onCopy: {}
+                            onPin:   { manager.togglePin(item) },
+                            onDelete: { manager.remove(item) },
+                            onCopy:  {}
                         )
                     }
                 }

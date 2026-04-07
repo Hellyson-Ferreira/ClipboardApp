@@ -9,22 +9,22 @@ final class ClipboardManager {
     var activeContentFilter: ClipboardContentType? = nil
     var selectedAppFilter: String? = nil
 
-    var filteredItems: [ClipboardItem] {
-        let pinned   = items.filter { $0.isPinned }
-        let unpinned = items.filter { !$0.isPinned }
-        let ordered  = pinned + unpinned
+    private let db      = DatabaseManager()
+    private let monitor = ClipboardMonitor()
+    private let maxNonPinned = 200
 
-        return ordered.filter { item in
-            let matchesSearch = searchText.isEmpty
-                || (item.textContent?.localizedCaseInsensitiveContains(searchText) ?? false)
-            let matchesFilter = activeContentFilter == nil || item.contentType == activeContentFilter
-            let matchesApp    = selectedAppFilter == nil   || item.sourceApp == selectedAppFilter
-            return matchesSearch && matchesFilter && matchesApp
-        }
+    // MARK: - Filtered views
+
+    var filteredItems: [ClipboardItem] {
+        applyFilters(to: items)
+    }
+
+    var pinnedFilteredItems: [ClipboardItem] {
+        applyFilters(to: items.filter { $0.isPinned })
     }
 
     var uniqueSourceApps: [String] {
-        var seen = Set<String>()
+        var seen  = Set<String>()
         return items.compactMap { item in
             guard !seen.contains(item.sourceApp) else { return nil }
             seen.insert(item.sourceApp)
@@ -32,110 +32,71 @@ final class ClipboardManager {
         }
     }
 
-    var pinnedFilteredItems: [ClipboardItem] {
-        items.filter { item in
-            guard item.isPinned else { return false }
-            let matchesSearch = searchText.isEmpty
-                || (item.textContent?.localizedCaseInsensitiveContains(searchText) ?? false)
-            let matchesFilter = activeContentFilter == nil || item.contentType == activeContentFilter
-            let matchesApp    = selectedAppFilter == nil   || item.sourceApp == selectedAppFilter
-            return matchesSearch && matchesFilter && matchesApp
-        }
-    }
-
     var totalCount: Int { filteredItems.count }
 
+    // MARK: - Init
+
     init() {
-        loadMockData()
+        items = db.fetchAll()
+
+        monitor.onNewItem = { [weak self] newItem in
+            self?.handleNew(newItem)
+        }
+        monitor.start()
     }
 
+    // MARK: - Mutations
+
     func togglePin(_ item: ClipboardItem) {
-        guard let index = items.firstIndex(of: item) else { return }
-        items[index].isPinned.toggle()
+        guard let idx = items.firstIndex(of: item) else { return }
+        items[idx].isPinned.toggle()
+        db.updatePin(id: item.id, isPinned: items[idx].isPinned)
     }
 
     func remove(_ item: ClipboardItem) {
         items.removeAll { $0.id == item.id }
+        db.delete(id: item.id)
     }
 
     func clearAll() {
         items.removeAll { !$0.isPinned }
+        db.deleteAllNonPinned()
     }
 
-    private func loadMockData() {
-        items = [
-            ClipboardItem(
-                contentType: .image,
-                sourceApp: "Cursor",
-                date: Date().addingTimeInterval(-30)
-            ),
-            ClipboardItem(
-                contentType: .url,
-                textContent: "https://gaitatzis.medium.com/clipboard-app-tutorial",
-                sourceApp: "Chrome",
-                date: Date().addingTimeInterval(-90)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "ClipboardApp",
-                sourceApp: "Cursor",
-                date: Date().addingTimeInterval(-150),
-                isPinned: true
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "Q#mhLa@w2iDV7/f",
-                sourceApp: "1Password",
-                date: Date().addingTimeInterval(-210)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "Swift",
-                sourceApp: "Cursor",
-                date: Date().addingTimeInterval(-270)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "Estrutura completa (Tauri + Rust)",
-                sourceApp: "Chrome",
-                date: Date().addingTimeInterval(-330)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "swift language",
-                sourceApp: "Cursor",
-                date: Date().addingTimeInterval(-390)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "não tem outra pessoa",
-                sourceApp: "WhatsApp",
-                date: Date().addingTimeInterval(-450)
-            ),
-            ClipboardItem(
-                contentType: .url,
-                textContent: "https://developer.apple.com/swift/",
-                sourceApp: "Safari",
-                date: Date().addingTimeInterval(-510)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "import SwiftUI\n\nstruct ContentView: View {",
-                sourceApp: "Cursor",
-                date: Date().addingTimeInterval(-570)
-            ),
-            ClipboardItem(
-                contentType: .file,
-                textContent: "project.pbxproj",
-                sourceApp: "Finder",
-                date: Date().addingTimeInterval(-630)
-            ),
-            ClipboardItem(
-                contentType: .text,
-                textContent: "hellyson@email.com",
-                sourceApp: "Mail",
-                date: Date().addingTimeInterval(-690)
-            ),
-        ]
+    // MARK: - Private
+
+    private func handleNew(_ item: ClipboardItem) {
+        // Deduplicar: ignora se o último item não-imagem tiver o mesmo conteúdo
+        if item.imageContent == nil,
+           let last = items.first(where: { !$0.isPinned }),
+           last.contentType  == item.contentType,
+           last.textContent  == item.textContent {
+            return
+        }
+
+        items.insert(item, at: 0)
+        db.insert(item)
+        trimIfNeeded()
+    }
+
+    private func trimIfNeeded() {
+        let nonPinned = items.filter { !$0.isPinned }
+        guard nonPinned.count > maxNonPinned else { return }
+
+        let toRemove = nonPinned.suffix(nonPinned.count - maxNonPinned)
+        for old in toRemove {
+            items.removeAll { $0.id == old.id }
+        }
+        db.trimOldest(keeping: maxNonPinned)
+    }
+
+    private func applyFilters(to source: [ClipboardItem]) -> [ClipboardItem] {
+        source.filter { item in
+            let matchesSearch = searchText.isEmpty
+                || (item.textContent?.localizedCaseInsensitiveContains(searchText) ?? false)
+            let matchesFilter = activeContentFilter == nil || item.contentType == activeContentFilter
+            let matchesApp    = selectedAppFilter   == nil || item.sourceApp   == selectedAppFilter
+            return matchesSearch && matchesFilter && matchesApp
+        }
     }
 }
