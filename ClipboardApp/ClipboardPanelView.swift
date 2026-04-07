@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 enum PanelTab: String, CaseIterable {
-    case recentes = "Recentes"
-    case fixados  = "Fixados"
+    case recentes = "Recents"
+    case fixados  = "Pinned"
 
     var icon: String {
         switch self {
@@ -50,11 +50,11 @@ struct ClipboardPanelView: View {
         .onChange(of: displayedItems.first?.id) { _, newId in
             if selectedItemId == nil { selectedItemId = newId }
         }
-        .alert("Limpar histórico", isPresented: $showClearAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Limpar", role: .destructive) { manager.clearAll() }
+        .alert("Clear History", isPresented: $showClearAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) { manager.clearAll() }
         } message: {
-            Text("Todos os clips não fixados serão removidos. Os itens fixados serão mantidos.")
+            Text("All unpinned clips will be removed. Pinned items will be kept.")
         }
     }
 
@@ -103,7 +103,7 @@ struct ClipboardPanelView: View {
                 .font(.system(size: 11))
                 .foregroundColor(.white.opacity(0.35))
 
-            TextField("Buscar clips...", text: $manager.searchText)
+            TextField("Search clips...", text: $manager.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
                 .foregroundColor(.white)
@@ -154,14 +154,19 @@ struct ClipboardPanelView: View {
     // MARK: - Items Count Bar
 
     private var itemsCountBar: some View {
-        HStack {
-            Text("\(displayedItems.count) \(activeTab == .fixados ? "fixados" : "items")")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.28))
-                .padding(.leading, 12)
-                .padding(.vertical, 5)
-            Spacer()
+        HStack(spacing: 3) {
+            Text("\(displayedItems.count)")
+            if activeTab == .fixados {
+                Text("pinned")
+            } else {
+                Text("items")
+            }
         }
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundColor(.white.opacity(0.28))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
     }
 
     // MARK: - Items Grid
@@ -200,15 +205,19 @@ struct ClipboardPanelView: View {
             Image(systemName: tab == .fixados ? "pin.slash" : "doc.on.clipboard")
                 .font(.system(size: 32))
                 .foregroundColor(.white.opacity(0.1))
-            Text(tab == .fixados ? "Nenhum item fixado" : "Nenhum item encontrado")
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.2))
             if tab == .fixados {
-                Text("Passe o mouse sobre um clip e clique em 📌 para fixar")
+                Text("No pinned items")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.2))
+                Text("Hover over a clip and click 📌 to pin it")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.12))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 200)
+            } else {
+                Text("No items found")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.2))
             }
         }
         .frame(maxWidth: .infinity)
@@ -261,7 +270,7 @@ struct ClipboardPanelView: View {
                     HStack(spacing: 5) {
                         Image(systemName: tab.icon)
                             .font(.system(size: 10, weight: .semibold))
-                        Text(tab.rawValue)
+                        Text(LocalizedStringKey(tab.rawValue))
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundColor(activeTab == tab ? Color(hex: "#30D158") : .white.opacity(0.45))

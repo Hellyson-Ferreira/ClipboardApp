@@ -38,7 +38,7 @@ extension Date {
     var relativeShort: String {
         let diff = Date().timeIntervalSince(self)
         switch diff {
-        case ..<60:       return "agora"
+        case ..<60:       return String(localized: "now")
         case ..<3600:     return "\(Int(diff / 60))m"
         case ..<86400:    return "\(Int(diff / 3600))h"
         default:          return "\(Int(diff / 86400))d"
