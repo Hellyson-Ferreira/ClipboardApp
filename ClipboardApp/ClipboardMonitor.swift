@@ -6,6 +6,7 @@ final class ClipboardMonitor {
 
     private var lastChangeCount: Int = NSPasteboard.general.changeCount
     private var timer: Timer?
+    private var suppressNext = false
 
     // MARK: - Lifecycle
 
@@ -22,6 +23,10 @@ final class ClipboardMonitor {
         timer = nil
     }
 
+    func suppressNextChange() {
+        suppressNext = true
+    }
+
     // MARK: - Polling
 
     private func poll() {
@@ -29,6 +34,11 @@ final class ClipboardMonitor {
         let currentCount  = pasteboard.changeCount
         guard currentCount != lastChangeCount else { return }
         lastChangeCount   = currentCount
+
+        if suppressNext {
+            suppressNext = false
+            return
+        }
 
         guard let item = buildItem(from: pasteboard) else { return }
         onNewItem?(item)

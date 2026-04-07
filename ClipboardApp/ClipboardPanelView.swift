@@ -18,6 +18,7 @@ struct ClipboardPanelView: View {
     @State private var activeTab      = PanelTab.recentes
     @State private var isSearching    = false
     @State private var showClearAlert = false
+    @State private var selectedItemId: UUID? = nil
     @FocusState private var searchFocused: Bool
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
@@ -40,6 +41,15 @@ struct ClipboardPanelView: View {
         .frame(width: 480, height: 560)
         .background(Color(hex: "#111111"))
         .preferredColorScheme(.dark)
+        .environment(manager)
+        .onAppear {
+            if selectedItemId == nil {
+                selectedItemId = displayedItems.first?.id
+            }
+        }
+        .onChange(of: displayedItems.first?.id) { _, newId in
+            if selectedItemId == nil { selectedItemId = newId }
+        }
         .alert("Limpar histórico", isPresented: $showClearAlert) {
             Button("Cancelar", role: .cancel) {}
             Button("Limpar", role: .destructive) { manager.clearAll() }
@@ -165,10 +175,13 @@ struct ClipboardPanelView: View {
                     ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
                         ClipboardItemCard(
                             item: item,
-                            isFirst: index == 0 && activeTab == .recentes && manager.searchText.isEmpty,
-                            onPin:   { manager.togglePin(item) },
+                            isSelected: selectedItemId == item.id,
+                            onPin:    { manager.togglePin(item) },
                             onDelete: { manager.remove(item) },
-                            onCopy:  {}
+                            onCopy:   {
+                                selectedItemId = item.id
+                                manager.copyToClipboard(item)
+                            }
                         )
                     }
                 }

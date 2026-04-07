@@ -2,13 +2,20 @@ import SwiftUI
 import AppKit
 
 struct ClipboardItemCard: View {
+    @Environment(ClipboardManager.self) private var manager
+
     let item: ClipboardItem
-    let isFirst: Bool
+    let isSelected: Bool
     let onPin: () -> Void
     let onDelete: () -> Void
     let onCopy: () -> Void
 
     @State private var isHovered = false
+
+    /// Lê `isPinned` direto do manager para sempre refletir o estado atual.
+    private var isPinned: Bool {
+        manager.items.first { $0.id == item.id }?.isPinned ?? item.isPinned
+    }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -24,7 +31,7 @@ struct ClipboardItemCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(
                 RoundedRectangle(cornerRadius: 9)
-                    .stroke(borderColor, lineWidth: isFirst ? 1.5 : 1)
+                    .stroke(borderColor, lineWidth: isSelected ? 1.5 : 1)
             )
 
             if isHovered {
@@ -38,8 +45,8 @@ struct ClipboardItemCard: View {
     }
 
     private var borderColor: Color {
-        if isFirst   { return Color(hex: "#30D158").opacity(0.65) }
-        if isHovered { return .white.opacity(0.18) }
+        if isSelected { return Color(hex: "#30D158").opacity(0.7) }
+        if isHovered  { return .white.opacity(0.18) }
         return .white.opacity(0.07)
     }
 
@@ -56,18 +63,20 @@ struct ClipboardItemCard: View {
     }
 
     private var imagePreview: some View {
-        ZStack {
-            Color(hex: "#141414")
-            if let img = item.imageContent {
-                Image(nsImage: img)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(systemName: "photo.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(.white.opacity(0.1))
+        Color(hex: "#141414")
+            .overlay {
+                if let img = item.imageContent {
+                    Image(nsImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .clipped()
+                } else {
+                    Image(systemName: "photo.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white.opacity(0.1))
+                }
             }
-        }
+            .clipped()
     }
 
     private var urlPreview: some View {
@@ -120,7 +129,7 @@ struct ClipboardItemCard: View {
 
     private var cardFooter: some View {
         HStack(spacing: 4) {
-            if item.isPinned {
+            if isPinned {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 7, weight: .bold))
                     .foregroundColor(Color(hex: "#30D158"))
@@ -152,8 +161,8 @@ struct ClipboardItemCard: View {
                 action: onDelete
             )
             overlayBtn(
-                icon: item.isPinned ? "pin.slash.fill" : "pin.fill",
-                color: item.isPinned ? Color(hex: "#30D158") : .white.opacity(0.75),
+                icon: isPinned ? "pin.slash.fill" : "pin.fill",
+                color: isPinned ? Color(hex: "#30D158") : .white.opacity(0.75),
                 action: onPin
             )
         }

@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         let popover = NSPopover()
-        popover.contentSize = NSSize(width: 480, height: 520)
+        popover.contentSize = NSSize(width: 480, height: 560)
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: ClipboardPanelView())
@@ -36,6 +36,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = NSImage(systemSymbolName: "doc.on.clipboard.fill", accessibilityDescription: "Clipboard")
             button.action = #selector(togglePopover)
             button.target = self
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .closePanelNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.popover?.performClose(nil)
         }
     }
 

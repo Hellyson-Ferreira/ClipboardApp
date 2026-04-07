@@ -63,6 +63,26 @@ final class ClipboardManager {
         db.deleteAllNonPinned()
     }
 
+    func copyToClipboard(_ item: ClipboardItem) {
+        monitor.suppressNextChange()
+
+        let pb = NSPasteboard.general
+        pb.clearContents()
+
+        switch item.contentType {
+        case .text, .url, .file:
+            if let text = item.textContent {
+                pb.setString(text, forType: .string)
+            }
+        case .image:
+            if let image = item.imageContent {
+                pb.writeObjects([image])
+            }
+        }
+
+        NotificationCenter.default.post(name: .closePanelNotification, object: nil)
+    }
+
     // MARK: - Private
 
     private func handleNew(_ item: ClipboardItem) {

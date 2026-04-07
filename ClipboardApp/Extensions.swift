@@ -1,6 +1,10 @@
 import SwiftUI
 import AppKit
 
+extension Notification.Name {
+    static let closePanelNotification = Notification.Name("ClipboardApp.closePanel")
+}
+
 extension Color {
     init(hex: String) {
         var raw = hex.trimmingCharacters(in: .whitespacesAndNewlines)
