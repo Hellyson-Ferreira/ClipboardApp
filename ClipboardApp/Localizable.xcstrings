@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld" : {
+
+    },
     "All unpinned clips will be removed. Pinned items will be kept." : {
       "localizations" : {
         "pt-BR" : {
@@ -112,6 +115,7 @@
       }
     },
     "Pinned" : {
+      "extractionState" : "stale",
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
@@ -122,6 +126,7 @@
       }
     },
     "Recents" : {
+      "extractionState" : "stale",
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
