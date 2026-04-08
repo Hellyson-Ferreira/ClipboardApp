@@ -36,7 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ── Status bar icon ────────────────────────────────────────────────
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "doc.on.clipboard.fill", accessibilityDescription: "Clipboard")
+            if let icon = NSImage(named: "AppIcon")?.copy() as? NSImage {
+                icon.size = NSSize(width: 18, height: 18)
+                button.image = icon
+            } else {
+                button.image = NSImage(systemSymbolName: "doc.on.clipboard.fill", accessibilityDescription: "Clipboard")
+            }
             button.action = #selector(handleStatusItemClick)
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.target = self
